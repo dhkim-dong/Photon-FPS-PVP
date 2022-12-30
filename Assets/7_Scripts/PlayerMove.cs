@@ -9,6 +9,8 @@ using UnityEngine.UI;
 // 네트워크 플레이어간의 데이터 동기화 처리를 하고싶다.
 public class PlayerMove : MonoBehaviourPun, IPunObservable
 {
+    public static PlayerMove instance;
+
     // 필요속성
     public float speed = 5;                      // 캐릭터 이동속도
     public float jumpPower = 10;                 // 캐릭터 점프힘
@@ -30,11 +32,9 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
     Quaternion remoteRot;
     Quaternion remoteCamRot;
 
-    [SerializeField]
-    private HandController theGunController;
+    [SerializeField] private HandController theGunController;
 
-    [SerializeField]
-    private GameObject appear;
+    [SerializeField] private GameObject appear;
 
     // 데이터 관리
     public float jumpTime;
@@ -47,23 +47,27 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
 
     private Vector3 lastPos;
 
-    [SerializeField]
-    private CrossHair theCrosshair;
+    [SerializeField] private CrossHair theCrosshair;
 
-    [SerializeField]
-    private StatusController theStatusController;
+    [SerializeField] private StatusController theStatusController;
 
     PhotonView PV;
 
     // 피격효과 구현
     private MeshRenderer mesh;
 
-    [SerializeField]
-    private GameObject hitUI;
+    [SerializeField] private GameObject hitUI;
 
-    // Start is called before the first frame update
+    // 점수 체크용 Bool
+    private bool blueWin;
+    private bool redWin;
+
+    [SerializeField] private GameObject Holder;
+
     void Start()
     {
+        instance = this;
+
         cc = GetComponent<CharacterController>();
 
         anim = GetComponentInChildren<Animator>();
@@ -76,6 +80,8 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
     // Update is called once per frame
     void Update()
     {
+        if (RoundManager.instance.isBegin) return;
+
         if (!photonView.IsMine)
         {
             transform.position = Vector3.Lerp(transform.position, remotePos, 10 * Time.deltaTime);
@@ -121,6 +127,7 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
         camAngle = Mathf.Clamp(camAngle, -60, 60);
 
         camera.localEulerAngles = new Vector3(-camAngle, 0, 0);
+        Holder.transform.localEulerAngles = new Vector3(-camAngle, 0, 0);
     }
 
     // 플레이어 전체 회전
@@ -149,7 +156,7 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
         }
 
         //점프
-        if (Input.GetButtonDown("Jump") && !isJump)
+        if (Input.GetButtonDown("Jump") && !isJump && theStatusController.GetSP() >= 200)
         {
             theStatusController.DecreaseStamina(200);
             isJump = true;
@@ -198,13 +205,19 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
             theStatusController.DecreaseHP(5); // 무기 공격력 만큼 데미지 감소
         }
         else
-        {  
-            PV.RPC("PlayerDebrisOut", RpcTarget.All);         
+        {
+            PV.RPC("PlayerDebrisOut", RpcTarget.MasterClient);         
             PV.RPC("DestroyRPC", RpcTarget.AllBuffered);
             // 죽음
             if (PV.IsMine)
-            Spawn();
-          
+            {
+                RoundManager.instance.redPoint++;
+                Spawn();
+            }
+            else
+            {
+                RoundManager.instance.bluePoint++;
+            }         
         }
     }
 
@@ -224,12 +237,20 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
     }
 
     [PunRPC]
-    void DestroyRPC() => Destroy(gameObject);
+    void DestroyRPC()
+    {
+        Destroy(gameObject);
+    }
 
     private void Spawn()
     {
-        Vector3 randPos = UnityEngine.Random.insideUnitSphere * 10;
-        randPos.y = 1;
-        GameObject newPlayer = PhotonNetwork.Instantiate("Player", randPos, Quaternion.identity);
+        if (PhotonNetwork.IsMasterClient)
+        {
+            PhotonNetwork.Instantiate("Player", NetworkManager.instance.createPos[0].position, Quaternion.identity);
+        }
+        else
+        {
+            PhotonNetwork.Instantiate("Player", NetworkManager.instance.createPos[1].position, Quaternion.identity);
+        }
     }
 }

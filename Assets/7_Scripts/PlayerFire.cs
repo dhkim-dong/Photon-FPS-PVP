@@ -10,10 +10,9 @@ public class PlayerFire : MonoBehaviourPun
 {
     private Camera cam;
 
-    [SerializeField]
-    private GameObject appear;
-
     [SerializeField] private TextMeshProUGUI playerName;
+
+    [SerializeField] private HandController theHandController;
 
     // 여기는 로비에서 접속하고 나서 바꾸는 로직이기 때문에
     // 로비에서 접속할 때 관리하는 것이 더 편할 수도 있다.
@@ -28,7 +27,6 @@ public class PlayerFire : MonoBehaviourPun
             gameObject.layer = LayerMask.NameToLayer("Player");
             gameObject.name = "Player";
             Cursor.lockState = CursorLockMode.Locked;
-            appear.SetActive(false);
         }
         // 그렇지 않으면 layer를 enemy로 지정
         else
@@ -49,5 +47,17 @@ public class PlayerFire : MonoBehaviourPun
     public void Damage()
     {
         PhotonNetwork.Destroy(gameObject);
+    }
+
+    [PunRPC]
+    public void PunMuzzleFlash()
+    {
+        theHandController.MuzzleFlash();
+    }
+
+    [PunRPC]
+    public void PunReload()
+    {
+        theHandController.ReloadForPun();
     }
 }

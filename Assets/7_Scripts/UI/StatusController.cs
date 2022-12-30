@@ -104,4 +104,8 @@ public class StatusController : MonoBehaviour
         return currentHp;
     }
 
+    public int GetSP()
+    {
+        return currentSp;
+    }
 }

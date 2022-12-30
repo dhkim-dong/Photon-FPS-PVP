@@ -49,6 +49,7 @@ public class HandController : MonoBehaviourPun
     // Update is called once per frame
     void Update()
     {
+        if (RoundManager.instance.isBegin) return;
 
         if (!PV.IsMine)
             return;
@@ -78,8 +79,7 @@ public class HandController : MonoBehaviourPun
         }
     }
     
-    // 발사 전 계산
-    private void Fire()
+    public void Fire()
     {
         if (!isReload)
         {
@@ -88,7 +88,7 @@ public class HandController : MonoBehaviourPun
             else
             {
                 CancelFineSight();
-                StartCoroutine(Reload());
+                PV.RPC("PunReload", RpcTarget.All);
             }
         }
     }
@@ -128,29 +128,39 @@ public class HandController : MonoBehaviourPun
         }
     }
 
+    public void ReloadForPun()
+    {
+        StartCoroutine(Reload());
+    }
+
     // 재장전 시도
     private void TryReload()
     {
         if (Input.GetKeyDown(KeyCode.R) && !isReload && currentRifle.currentBulletCount < currentRifle.reloadBulletCount)
         {
             CancelFineSight();
-            StartCoroutine(Reload());
+            PV.RPC("PunReload", RpcTarget.All);
         }
     }
 
     // 발사 후 계산
-    private void Shoot()
+    public void Shoot()
     {
         theCrossHair.FireAnimation();
         currentRifle.currentBulletCount--;
         currentFireRate = currentRifle.fireRate; // 연사 속도 재계산
-        currentRifle.muzzleFlash.Play();
+        PV.RPC("PunMuzzleFlash", RpcTarget.All);
         Hit();
         AudioManager.instance.GunFire();
 
         // 총기 반동
         StopAllCoroutines();
         StartCoroutine(RetroActionCoroutine());
+    }
+
+    public void MuzzleFlash()
+    {
+        currentRifle.muzzleFlash.Play();
     }
 
     // 히트 스캔 방법의 총알
