@@ -16,6 +16,8 @@ public class CrossHair : MonoBehaviour
     [SerializeField]
     private HandController theGun;
 
+    [SerializeField] private GameObject my_cam;
+
     public void WalkingAnimation(bool _flag)
     {
         anim.SetBool("Move", _flag);

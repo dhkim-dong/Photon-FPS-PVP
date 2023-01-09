@@ -9,24 +9,33 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 {
     public Text StatusText;       // 현재 네트워크 상태를 알려주는 텍스트
     public Transform[] createPos; // 0은 호스트 위치 1은 클라이언트 위치
+    public InputField NickNameInput; // InputField에 입력할 내용 
 
     public static NetworkManager instance;
 
     public int playerCount;
 
+    public PhotonView PV;
+
+    [SerializeField] private GameObject loginPhase;  // 로그인 중 게임 오브젝트 
+    [SerializeField] private GameObject waitingText; // 로그인 후 뜨는 안내 메시지
+
     private void Awake()
     {
         Screen.SetResolution(1080, 1920, false);
-        PhotonNetwork.ConnectUsingSettings();
         instance = this;
     }
-    public PhotonView PV;
+
+    public void Connect() => PhotonNetwork.ConnectUsingSettings();
 
     public override void OnConnectedToMaster()
     {
         Debug.Log(" 마스터에 연결");
-        PhotonNetwork.JoinOrCreateRoom("Room", new RoomOptions { MaxPlayers = 2 }, null);
+        PhotonNetwork.LocalPlayer.NickName = NickNameInput.text;
+        JoinOrCreateRoom();
     }
+
+    public void JoinOrCreateRoom() => PhotonNetwork.JoinOrCreateRoom("Room", new RoomOptions { MaxPlayers = 2 }, null);
 
     public override void OnJoinedRoom() // 방에 입장과 동시에 Player 캐릭터를 생성한다.
     {
@@ -39,7 +48,9 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         else
             PhotonNetwork.Instantiate("Player", createPos[1].position, Quaternion.identity);
 
-        RoundManager.instance.isBegin = true;   
+        RoundManager.instance.isBegin = true;
+        loginPhase.SetActive(false);
+        waitingText.SetActive(true);
     }
 
     [PunRPC]
@@ -70,6 +81,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     void Update()
     {
+
         StatusText.text = PhotonNetwork.NetworkClientState.ToString();
 
         if (playerCount == 2)

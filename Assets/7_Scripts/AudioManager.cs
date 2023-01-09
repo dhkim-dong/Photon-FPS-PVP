@@ -13,7 +13,6 @@ public class AudioManager : MonoBehaviour
     public AudioClip zombie;
     public AudioClip reload;
 
-    // Start is called before the first frame update
     void Start()
     {
         instance = this;
@@ -28,5 +27,10 @@ public class AudioManager : MonoBehaviour
     public void zomAtk()
     {
         audio.PlayOneShot(zombie);
+    }
+
+    public void GunReload()
+    {
+        audio.PlayOneShot(reload);
     }
 }

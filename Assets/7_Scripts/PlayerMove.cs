@@ -77,7 +77,6 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
         mesh = GetComponent<MeshRenderer>();
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (RoundManager.instance.isBegin) return;
@@ -120,14 +119,13 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
 
     // 카메라 상하 이동
     void RotateCamera()
-    {
-        
+    {       
         float value = Input.GetAxis("Mouse Y");
         camAngle += value * rotSpeed * Time.deltaTime;
         camAngle = Mathf.Clamp(camAngle, -60, 60);
 
         camera.localEulerAngles = new Vector3(-camAngle, 0, 0);
-        Holder.transform.localEulerAngles = new Vector3(-camAngle, 0, 0);
+        Holder.transform.localEulerAngles = new Vector3(-camAngle, 0, 0); // 총구가 카메라의 상하 이동을 따라가도록
     }
 
     // 플레이어 전체 회전
@@ -196,13 +194,13 @@ public class PlayerMove : MonoBehaviourPun, IPunObservable
  
 
     [PunRPC]
-    public void PVPCallDamage()
+    public void PVPCallDamage(int damage)
     {
         if(theStatusController.GetHP() > 0)
         {
             StopCoroutine(HitMeshChange());
             StartCoroutine(HitMeshChange());
-            theStatusController.DecreaseHP(5); // 무기 공격력 만큼 데미지 감소
+            theStatusController.DecreaseHP(damage); // 무기 공격력 만큼 데미지 감소
         }
         else
         {

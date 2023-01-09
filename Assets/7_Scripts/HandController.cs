@@ -22,6 +22,8 @@ public class HandController : MonoBehaviourPun
     [HideInInspector]
     public bool isFineSightMode = false;
 
+    // public bool isActivate = false; // 현재 무기 변수 체크 ( 근접 공격 구현할 시 필요)
+
     // 본래 포지션 값.
     private Vector3 originPos;
 
@@ -31,27 +33,25 @@ public class HandController : MonoBehaviourPun
     private RaycastHit hitInfo;
 
     // 카메라 기반 총알 발사
-    [SerializeField]
-    private Camera theCam;
+    [SerializeField] private Camera theCam;
 
-    [SerializeField]
-    private CrossHair theCrossHair;
+    [SerializeField] private CrossHair theCrossHair;
 
     // 피격 이팩트
-    [SerializeField]
-    private GameObject hit_effect_prefab;
+    [SerializeField] private GameObject hit_effect_prefab;
+
+    [SerializeField] private WeaponManager theWeaponManager;
 
     private void Start()
     {
-        originPos = Vector3.zero;
+        originPos = currentRifle.transform.localPosition;
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (RoundManager.instance.isBegin) return;
 
-        if (!PV.IsMine)
+        if (!PV.IsMine || theWeaponManager.isChangeWeapon)
             return;
 
 
@@ -99,7 +99,9 @@ public class HandController : MonoBehaviourPun
         if(currentRifle.carryBulletCount > 0)
         {
             isReload = true;
+            GetComponentInParent<Scope>().OnUnscoped();
             currentRifle.anim.SetTrigger("Reload");
+            AudioManager.instance.GunReload();
 
             currentRifle.carryBulletCount += currentRifle.currentBulletCount;
             currentRifle.currentBulletCount = 0;
@@ -128,7 +130,7 @@ public class HandController : MonoBehaviourPun
         }
     }
 
-    public void ReloadForPun()
+    public void ReloadForPun() // Photon View가 있는 PlayerFire Script에서 사용하기 위해 선언한 메서드
     {
         StartCoroutine(Reload());
     }
@@ -183,7 +185,7 @@ public class HandController : MonoBehaviourPun
 
             if(hitInfo.transform.name.Contains("Enemy") && PV)
             {
-                pv.RPC("PVPCallDamage", RpcTarget.All);
+                pv.RPC("PVPCallDamage", RpcTarget.All,currentRifle.damage);
             }
         }
     }
@@ -303,5 +305,18 @@ public class HandController : MonoBehaviourPun
 
     Vector3 remotePos;
     Quaternion remoteRot;
+
+    public void GunChange(Rifle _rifle)
+    {
+        if (theWeaponManager.currentWeapon != null)
+            theWeaponManager.currentWeapon.gameObject.SetActive(false);
+
+        currentRifle = _rifle;
+        theWeaponManager.currentWeapon = currentRifle.GetComponent<Transform>();
+        theWeaponManager.currentWeaponAnim = currentRifle.anim;
+
+        currentRifle.transform.localPosition = Vector3.zero;
+        currentRifle.gameObject.SetActive(true);
+    }
 
 }

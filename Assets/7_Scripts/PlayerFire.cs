@@ -5,7 +5,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using TMPro;
 
-// 사용자가 발사 버튼을 누르면 총을 발사하고 싶다.
+// 포톤 RPC를 관리하는 Player Class이다.
 public class PlayerFire : MonoBehaviourPun
 {
     private Camera cam;
@@ -13,7 +13,9 @@ public class PlayerFire : MonoBehaviourPun
     [SerializeField] private TextMeshProUGUI playerName;
 
     [SerializeField] private HandController theHandController;
-
+    [SerializeField] private WeaponManager theWeaponManager;
+    [SerializeField] private GameObject weapons;
+    [SerializeField] private GameObject othersUI;
     // 여기는 로비에서 접속하고 나서 바꾸는 로직이기 때문에
     // 로비에서 접속할 때 관리하는 것이 더 편할 수도 있다.
     void Start()
@@ -31,6 +33,8 @@ public class PlayerFire : MonoBehaviourPun
         // 그렇지 않으면 layer를 enemy로 지정
         else
         {
+            SetLayersRecursively(weapons.transform,"Enemy");
+            othersUI.SetActive(false);
             gameObject.layer = LayerMask.NameToLayer("Enemy");
             cam = GetComponentInChildren<Camera>();
             cam.gameObject.SetActive(false);
@@ -38,9 +42,18 @@ public class PlayerFire : MonoBehaviourPun
         }
     }
 
+    public void SetLayersRecursively(Transform trans, string name)
+    {
+        trans.gameObject.layer = LayerMask.NameToLayer(name);
+        foreach(Transform child in trans)
+        {
+            SetLayersRecursively(child, name);
+        }
+    }
+
     private void Update()
     {
-        playerName.text = "Player" + photonView.ViewID;
+        playerName.text = PhotonNetwork.LocalPlayer.NickName;
     }
 
     [PunRPC]
@@ -59,5 +72,11 @@ public class PlayerFire : MonoBehaviourPun
     public void PunReload()
     {
         theHandController.ReloadForPun();
+    }
+
+    [PunRPC]
+    public void RPCWeaponChange(string _type, string _name)
+    {
+        theWeaponManager.ChangeWeaponRPC(_type, _name);
     }
 }

@@ -1,3 +1,4 @@
+using Photon.Pun;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,20 +8,15 @@ using UnityEngine.UI;
 public class WeaponManager : MonoBehaviour
 {
     // 무기 중복 교체 실행 방지
-    public static bool isChangeWeapon = false;
-
-    public static int count;
+    public bool isChangeWeapon = false;
+    public bool isSniper = false;
 
     // 현재 무기에 필요한 정보
-    public static Transform currentWeapon;
-    public static Animator currentWeaponAnim;
-
-    [SerializeField]
-    private Text count_2;
+    public Transform currentWeapon;
+    public Animator currentWeaponAnim;
 
     // 현재 무기의 타입
-    [SerializeField]
-    private string currentWeaponType;
+    [SerializeField] private string currentWeaponType;
 
     // 무기 교체 딜레이, 무기 교체가 완전히 끝난 시점
     [SerializeField]
@@ -37,10 +33,11 @@ public class WeaponManager : MonoBehaviour
     [SerializeField]
     private HandController theGunController;
 
+    [SerializeField] private PhotonView PV;
 
     private void Awake()
     {
-        
+        currentWeaponType = "GUN";
     }
 
     // Start is called before the first frame update
@@ -55,25 +52,41 @@ public class WeaponManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        count_2.text = count.ToString();
-
         if (!isChangeWeapon)
         {
+            if (!PV.IsMine) return;
+
             if (Input.GetKeyDown(KeyCode.Alpha1))
-                ;// 무기 교체 실행
+            {
+                isSniper = false;
+                PV.RPC("RPCWeaponChange", RpcTarget.All,"GUN","Rifle1");
+                //StartCoroutine(ChangeWeaponCoroutine("GUN", "Rifle1"));// 돌격 소총
+            }
             else if (Input.GetKeyDown(KeyCode.Alpha2))
-                ;// 무기 교체 실행
+            {
+                isSniper = true;
+                PV.RPC("RPCWeaponChange", RpcTarget.All,"GUN","Rifle2");
+            }
         }
+    }
+
+    public void ChangeWeaponRPC(string _type, string _name)
+    {
+        StartCoroutine(ChangeWeaponCoroutine(_type, _name));
     }
 
     public IEnumerator ChangeWeaponCoroutine(string _type, string _name)
     {
         isChangeWeapon = true;
-        currentWeaponAnim.SetTrigger("Weapon_Out");
-
         yield return new WaitForSeconds(changeWeaponDelayTime);
 
         CancelPreWeaponAction();
+        WeaponChange(_type, _name);
+
+        yield return new WaitForSeconds(changeWeaponEndDelayTime);
+
+        currentWeaponType = _type;
+        isChangeWeapon = false; 
     }
 
     private void CancelPreWeaponAction()
@@ -83,8 +96,14 @@ public class WeaponManager : MonoBehaviour
             case "GUN":
                 theGunController.CancelFineSight();
                 break;
-            case "Sniper":
-                break;
+        }
+    }
+
+    private void WeaponChange(string _type, string _name)
+    {
+        if(_type == "GUN")
+        {
+            theGunController.GunChange(gunDictionary[_name]);
         }
     }
 }
